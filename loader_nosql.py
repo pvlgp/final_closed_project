@@ -10,12 +10,19 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 
+
 load_dotenv()
+# проверяем существование директории log
+# в случае отсутствия создаем директорию log
+if not os.path.exists("log"):
+    os.makedirs("log")
+
 # настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
+        # логи выводим в терминал и сохраняем в директорию log
         logging.FileHandler("log/loader_nosql.log"),
         logging.StreamHandler()
     ]
