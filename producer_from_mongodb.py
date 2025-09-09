@@ -28,7 +28,7 @@ logging.basicConfig(
 
 logger = logging.getLogger("producer_from_mongodb")
 
-def get_data_from_mongodb(url: str, db_name: str, collect_name: str):
+def get_data_from_mongodb(url: str, db_name: str, collect_name: str) -> list:
     """
     Функция выполняет подключение к MongoDB и получает документы из указанной коллекции
     :param url: URL для подключения к серверу MongoDB
@@ -39,37 +39,28 @@ def get_data_from_mongodb(url: str, db_name: str, collect_name: str):
     try:
         # подключаемся к MongoDB
         logger.info("Попытка подключения к MongoDB")
-        client = MongoClient(url, serverSelectionTimeoutMS=5000)
-        # проверка подключения
-        conn_yes = client.admin.command("ping")
-        if conn_yes:
+        with MongoClient(url, serverSelectionTimeoutMS=5000) as client:
+            # проверка подключения
+            client.admin.command("ping")
             logger.info("Подключение к MongoDB установлено")
-        else:
-            raise ServerSelectionTimeoutError
-        # получаем базу данных и коллекцию
-        db = client[db_name]
+            # получаем базу данных и коллекцию
+            db = client[db_name]
+            collect = db[collect_name]
 
-        collect = db[collect_name]
-
-        # получаем документы, исключаем поле '_id'
-        documents = list(collect.find({}, {"_id": 0}))
-        logger.info(f"Получено {len(documents)} документов в коллекции {collect_name}")
-        return documents
+            # получаем документы, исключаем поле '_id'
+            documents = list(collect.find({}, {"_id": 0}))
+            logger.info(f"Получено {len(documents)} документов в коллекции {collect_name}")
+            return documents
 
     except ServerSelectionTimeoutError as SSTerr:
-        logger.info(f"Ошибка подключения к MongoDB: {SSTerr}")
+        logger.error(f"Ошибка подключения к MongoDB: {SSTerr}")
+        return []
     except PyMongoError as mongo_err:
         logger.error(f"Ошибка при работе с MongoDB: {mongo_err}")
         return []
     except Exception as err:
         logger.error(f"Непредвиденная ошибка: {err}")
         return []
-    finally:
-        if "client" in locals():
-            client.close()
-            logger.info("Соединение с MongoDB закрыто")
 
-documents = get_data_from_mongodb(os.getenv("CLIENT"), os.getenv("DB_NAME"), "products")
-
-for d in documents:
-    print(d)
+def send_to_kafka():
+    pass
