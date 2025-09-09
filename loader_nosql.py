@@ -57,10 +57,10 @@ def load_json_in_mongodb(directory, collection_name) -> None:
 try:
     # создание подключения к MongoDB
     logger.info("Попытка подключения к MongoDB")
-    client = MongoClient(os.getenv("CLIENT"))
+    client = MongoClient(os.getenv("CLIENT_MONGO"))
     # Создание базы данных
     logger.info("Попытка обращения/создания к базе данных")
-    data_base = client["product_store"]
+    data_base = client[os.getenv("DB_NAME")]
 
     # создание коллекций
     logger.info("Попытка обращения/создания к коллекции")
