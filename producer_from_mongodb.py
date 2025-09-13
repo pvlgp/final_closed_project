@@ -123,7 +123,8 @@ def send_to_kafka(producer: KafkaProducer, topic: str, data: list) -> None:
                 # при ошибке увеличиваем переменную failed_count на единицу
                 failed_count += 1
         producer.flush()
-        logger.info(f"Успешно отправлено {success_count}/{len(data)} сообщений в топик {topic}. Количество ошибок {failed_count}.")
+        logger.info(f"""Успешно отправлено {success_count}/{len(data)} сообщений в топик {topic}.
+        Количество ошибок {failed_count}.""")
     except Exception as err:
         logger.error(f"Ошибка при отправке в Kafka {err}")
 
@@ -137,35 +138,35 @@ def main() -> None:
         logger.info("Запуск Producer для загрузки данных из MongoDB в Kafka")
         # получаем список коллекций в указанной БД
         list_collections = get_list_collections(param_conf["client"], param_conf["db"])
-        logger.info(f"Найдены коллекции: {", ".join(list_collections)}")
+        logger.info(f"Найдены коллекции: {', '.join(list_collections)}")
         # создаем Kafka Producer
         logger.info("Создание Kafka Producer")
-        producer = KafkaProducer(
+        with KafkaProducer(
             bootstrap_servers=param_conf["Kafka_server"],
             acks="all",
             retries=3
-        )
-        # проходим по списку с коллекциями
-        for collection_name in list_collections:
-            logger.info(f"Обработка коллекции: {collection_name}")
-            # получаем данные из коллекции
-            data = get_data_from_mongodb(
-                url=param_conf["client"],
-                db_name=param_conf["db"],
-                collect_name=collection_name
-            )
-            # определяем имя топика
-            kafka_topik = f"mongodb_{param_conf["db"]}_{collection_name}"
-            # отправляем данные в топик
-            logger.info(f"Отправка {len(data)} документов в топик {kafka_topik}")
-            send_to_kafka(
-                producer=producer,
-                topic=kafka_topik,
-                data=data
-            )
-            logger.info(f"Коллекция {collection_name} обработана")
-        producer.close()
-        logger.info("ETL процесс завершен")
+        ) as producer:
+            # проходим по списку с коллекциями
+            for collection_name in list_collections:
+                logger.info(f"Обработка коллекции: {collection_name}")
+                # получаем данные из коллекции
+                data = get_data_from_mongodb(
+                    url=param_conf["client"],
+                    db_name=param_conf["db"],
+                    collect_name=collection_name
+                )
+                # определяем имя топика
+                kafka_topik = f"mongodb_{param_conf['db']}_{collection_name}"
+                # отправляем данные в топик
+                logger.info(f"Отправка {len(data)} документов в топик {kafka_topik}")
+                send_to_kafka(
+                    producer=producer,
+                    topic=kafka_topik,
+                    data=data
+                )
+                logger.info(f"Коллекция {collection_name} обработана")
+            # producer.close()
+            logger.info("ETL процесс завершен")
     except Exception as main_err:
         logger.error(f"Ошибка в функции main: {main_err}")
     finally:
