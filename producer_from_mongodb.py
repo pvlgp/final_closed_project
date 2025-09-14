@@ -141,32 +141,32 @@ def main() -> None:
         logger.info(f"Найдены коллекции: {', '.join(list_collections)}")
         # создаем Kafka Producer
         logger.info("Создание Kafka Producer")
-        with KafkaProducer(
+        producer = KafkaProducer(
             bootstrap_servers=param_conf["Kafka_server"],
             acks="all",
             retries=3
-        ) as producer:
-            # проходим по списку с коллекциями
-            for collection_name in list_collections:
-                logger.info(f"Обработка коллекции: {collection_name}")
-                # получаем данные из коллекции
-                data = get_data_from_mongodb(
-                    url=param_conf["client"],
-                    db_name=param_conf["db"],
-                    collect_name=collection_name
-                )
-                # определяем имя топика
-                kafka_topik = f"mongodb_{param_conf['db']}_{collection_name}"
-                # отправляем данные в топик
-                logger.info(f"Отправка {len(data)} документов в топик {kafka_topik}")
-                send_to_kafka(
-                    producer=producer,
-                    topic=kafka_topik,
-                    data=data
-                )
-                logger.info(f"Коллекция {collection_name} обработана")
-            # producer.close()
-            logger.info("ETL процесс завершен")
+        )
+        # проходим по списку с коллекциями
+        for collection_name in list_collections:
+            logger.info(f"Обработка коллекции: {collection_name}")
+            # получаем данные из коллекции
+            data = get_data_from_mongodb(
+                url=param_conf["client"],
+                db_name=param_conf["db"],
+                collect_name=collection_name
+            )
+            # определяем имя топика
+            kafka_topik = f"mongodb_{param_conf['db']}_{collection_name}"
+            # отправляем данные в топик
+            logger.info(f"Отправка {len(data)} документов в топик {kafka_topik}")
+            send_to_kafka(
+                producer=producer,
+                topic=kafka_topik,
+                data=data
+            )
+            logger.info(f"Коллекция {collection_name} обработана")
+        producer.close()
+        logger.info("ETL процесс завершен")
     except Exception as main_err:
         logger.error(f"Ошибка в функции main: {main_err}")
     finally:
