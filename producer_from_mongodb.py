@@ -1,5 +1,5 @@
 """
-Producer для загрузки информации в Kafka из MongoDB
+Producer для загрузки данных в Kafka из MongoDB
 """
 import json
 import logging
@@ -32,7 +32,7 @@ logger = logging.getLogger("producer_from_mongodb")
 param_conf = {
     "client": os.getenv("CLIENT_MONGO"),
     "db": os.getenv("DB_NAME"),
-    "Kafka_server": os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+    "kafka_server": os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 }
 
 def get_list_collections(url: str, db_name) -> list:
@@ -134,6 +134,7 @@ def main() -> None:
     Extract - из MongoDB, Load - в Kafka.
     :return: None
     """
+    producer = None
     try:
         logger.info("Запуск Producer для загрузки данных из MongoDB в Kafka")
         # получаем список коллекций в указанной БД
@@ -142,7 +143,7 @@ def main() -> None:
         # создаем Kafka Producer
         logger.info("Создание Kafka Producer")
         producer = KafkaProducer(
-            bootstrap_servers=param_conf["Kafka_server"],
+            bootstrap_servers=param_conf["kafka_server"],
             acks="all",
             retries=3
         )
@@ -165,11 +166,11 @@ def main() -> None:
                 data=data
             )
             logger.info(f"Коллекция {collection_name} обработана")
-        producer.close()
         logger.info("ETL процесс завершен")
     except Exception as main_err:
         logger.error(f"Ошибка в функции main: {main_err}")
     finally:
+        producer.close()
         logger.info("Завершение работы Producer")
 
 if __name__ == "__main__":
