@@ -12,3 +12,7 @@
 2) Скрипт `loader_nosql.py` загружает сгенерированные JSON в базу данных MongoDB. Запуск скрипта производится командой `python3 loader_nosql.py` для Mac OS и Linux, `python loader_nosql.py` для Windows;
 3) Скрипт `producer_from_mongodb.py` подключается к базе данных MongoDB и загружает данные в Kafka. Запуск скрипта производится командой `python3 producer_from_mongodb.py` для Mac OS и Linux, `python producer_from_mongodb.py` для Windows;
 4) Скрипт `consumer_in_clickhouse.py` подключается к Kafka и загружает данные в сырое хранилище Clickhouse (RAW). Запуск скрипта производится командой `python3 generator_picture.py` для Mac OS и Linux, `python generator_picture.py` для WindowsЗапуска скрипта производится командой `python3 consumer_in_clickhouse.py` для Mac OS и Linux, `python consumer_in_clickhouse.py` для Windows.
+
+## 4. Промежуточный этап выполнения
+### Данные успешно загружены в сырое хранилище (Clickhouse RAW)
+![Снимок экрана 2025-09-29 в 15.53.37.png](%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202025-09-29%20%D0%B2%2015.53.37.png)
