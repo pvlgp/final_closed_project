@@ -4,6 +4,7 @@ Consumer для загрузки данных из Kafka в Clickhouse
 import json
 import logging
 import os
+import hashlib
 
 from kafka import KafkaConsumer
 from kafka.admin import KafkaAdminClient
@@ -43,6 +44,23 @@ logger.info("=== ПРОВЕРКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ===")
 for key, value in param_conf.items():
     status = "✅" if value else "❌"
     logger.info(f"{status} {key}: {value}")
+
+
+def encrypt_sha256(data: str) -> str | None:
+    """
+    Функция вычисляющая хэш, используется алгоритм sha256
+    :param data: строка для которой вычисляется хэш
+    :return: объект str или None в случае ошибки
+    """
+    try:
+        if data:
+            logger.info("Попытка вычисления хэш функции")
+            return hashlib.sha256(data.encode()).hexdigest()
+        logger.warning("Данные для вычисления хэш функции отсутствуют отсутствуют")
+        return ""
+    except Exception as hash_err:
+        logger.error(f"Ошибка при вычислении хэш функции: {hash_err}")
+
 
 class SendToClickhouseRaw:
     def __init__(self, clickhouse_client: ClickhouseClient, db_name: str = "raw_storage"):
@@ -175,6 +193,28 @@ class SendToClickhouseRaw:
                 """
             )
 
+            # Извлечение email и phone
+            customer_phone = (kafka_message.get("phone", "")
+                              .replace("(", "")
+                              .replace(")", "")
+                              .replace("+7", "8")
+                              .replace("-", "")
+                              .replace("_", "")
+                              .replace(" ", ""))
+            customer_email = kafka_message.get("email", "").lower()
+
+            # шифрование email и phone
+            phone_encrypted = encrypt_sha256(customer_phone)
+            email_encrypted = encrypt_sha256(customer_email)
+            # обработка случаев когда encrypt_sha256 вернула None
+            if phone_encrypted is None:
+                phone_encrypted = ""
+                logger.warning("Шифрование phone не удалось, используется пустая строка")
+
+            if email_encrypted is None:
+                email_encrypted = ""
+                logger.warning("Шифрование email не удалось, используется пустая строка")
+
             # Безопасное извлечение purchase_location
             purchase_location = kafka_message.get("purchase_location", {})
             if "coordinates" in purchase_location:
@@ -198,8 +238,8 @@ class SendToClickhouseRaw:
                     kafka_message.get("customer_id", ""),
                     kafka_message.get("first_name", ""),
                     kafka_message.get("last_name", ""),
-                    kafka_message.get("email", ""),
-                    kafka_message.get("phone", ""),
+                    email_encrypted,
+                    phone_encrypted,
                     kafka_message.get("birth_date", ""),
                     kafka_message.get("gender", ""),
                     kafka_message.get("registration_date", ""),
@@ -343,8 +383,27 @@ class SendToClickhouseRaw:
             # Безопасное извлечение manager
             manager = kafka_message.get("manager", {})
             manager_name = manager.get("name", "")
-            manager_phone = manager.get("phone", "")
-            manager_email = manager.get("email", "")
+            manager_phone = (manager.get("phone", "")
+                .replace("(", "")
+                .replace(")", "")
+                .replace("+7", "8")
+                .replace("-", "")
+                .replace("_", "")
+                .replace(" ", ""))
+            manager_email = manager.get("email", "").lower()
+
+            # шифрование email и phone
+            manager_phone_encrypted = encrypt_sha256(manager_phone)
+            manager_email_encrypted = encrypt_sha256(manager_email)
+
+            # обработка случаев когда encrypt_sha256 вернула None
+            if manager_phone_encrypted is None:
+                phone_encrypted = ""
+                logger.warning("Шифрование phone не удалось, используется пустая строка")
+
+            if manager_email_encrypted is None:
+                manager_email_encrypted = ""
+                logger.warning("Шифрование email не удалось, используется пустая строка")
 
             self.clickhouse_client.execute(
                 f"""
@@ -363,8 +422,8 @@ class SendToClickhouseRaw:
                     kafka_message.get("store_type_description", ""),
                     kafka_message.get("type", ""),
                     manager_name,
-                    manager_phone,
-                    manager_email,
+                    manager_phone_encrypted,
+                    manager_email_encrypted,
                     location.get("country", ""),
                     location.get("city", ""),
                     location.get("street", ""),
